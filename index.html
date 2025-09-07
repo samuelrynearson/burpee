@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Advanced Interval Timer</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 40px;
+      background-color: white;
+      transition: background-color 0.3s ease;
+    }
+    input, button {
+      padding: 10px;
+      margin: 10px;
+      font-size: 1rem;
+    }
+    #status {
+      font-size: 1.2rem;
+      margin-top: 20px;
+    }
+    #countdown {
+      font-size: 2rem;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Interval Timer</h1>
+
+  <label>Total Time (minutes): <input type="number" id="totalTime" min="1" value="20"></label><br>
+  <label>Number of Intervals: <input type="number" id="intervals" min="1" value="120"></label><br>
+
+  <button onclick="startTimer()">Start Timer</button>
+  <button onclick="togglePause()">Pause/Resume</button>
+
+  <p id="status">Ready</p>
+  <p id="countdown">00:00</p>
+
+  <!-- Main beep -->
+  <audio id="beep-sound">
+    <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
+  </audio>
+
+  <!-- Softer beep (use same sound, just call it differently or replace with softer version later) -->
+  <audio id="soft-beep">
+    <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
+  </audio>
+
+  <script>
+    let intervalDuration = 0;
+    let intervals = 0;
+    let currentLoop = 0;
+    let mainTimer = null;
+    let countdownTimer = null;
+    let warningTimer = null;
+    let paused = false;
+    let resumeFromCountdown = false;
+    let timeLeft = 0;
+
+    const status = document.getElementById('status');
+    const countdownDisplay = document.getElementById('countdown');
+    const beep = document.getElementById('beep-sound');
+    const softBeep = document.getElementById('soft-beep');
+
+    function startTimer() {
+      clearInterval(mainTimer);
+      clearInterval(countdownTimer);
+      clearTimeout(warningTimer);
+      document.body.style.backgroundColor = "white";
+      paused = false;
+      currentLoop = 0;
+
+      const totalMinutes = parseFloat(document.getElementById('totalTime').value);
+      intervals = parseInt(document.getElementById('intervals').value);
+      const totalSeconds = totalMinutes * 60;
+      intervalDuration = totalSeconds / intervals;
+
+      if (intervalDuration < 1) {
+        alert("Too many intervals for the given time.");
+        return;
+      }
+
+      status.innerText = `Starting...`;
+      beginLoop();
+    }
+
+    function beginLoop() {
+      if (currentLoop >= intervals) {
+        status.innerText = "✅ All intervals complete!";
+        countdownDisplay.innerText = "00:00";
+        document.body.style.backgroundColor = "white";
+        return;
+      }
+
+      // Reset time left
+      timeLeft = intervalDuration;
+      updateCountdownDisplay();
+
+      // Start countdown timer display
+      countdownTimer = setInterval(() => {
+        if (!paused) {
+          timeLeft -= 1;
+          updateCountdownDisplay();
+        }
+      }, 1000);
+
+      // Start warning countdown 3 seconds before beep
+      let countdown = 3;
+      function warningBeepCountdown() {
+        if (paused) {
+          resumeFromCountdown = true;
+          return;
+        }
+
+        if (countdown > 0) {
+          status.innerText = `Loop ${currentLoop + 1} of ${intervals} - Beep in ${countdown}...`;
+          softBeep.play();
+          countdown--;
+          warningTimer = setTimeout(warningBeepCountdown, 1000);
+        } else {
+          doBeep();
+        }
+      }
+
+      // Wait intervalDuration - 3s, then do the 3-second warning beeps
+      const delayBeforeWarnings = Math.max((intervalDuration - 3) * 1000, 0);
+      warningTimer = setTimeout(warningBeepCountdown, delayBeforeWarnings);
+    }
+
+    function doBeep() {
+      if (paused) {
+        resumeFromCountdown = true;
+        return;
+      }
+
+      beep.play();
+      flashGreen();
+
+      currentLoop++;
+      status.innerText = `✅ Beep! Loop ${currentLoop} of ${intervals}`;
+
+      clearInterval(countdownTimer);
+
+      setTimeout(beginLoop, 1000); // wait 1s then next loop
+    }
+
+    function updateCountdownDisplay() {
+      const minutes = Math.floor(timeLeft / 60);
+      const seconds = Math.floor(timeLeft % 60);
+      countdownDisplay.innerText = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    function flashGreen() {
+      const originalColor = document.body.style.backgroundColor;
+      document.body.style.backgroundColor = '#90ee90'; // light green
+      setTimeout(() => {
+        document.body.style.backgroundColor = originalColor;
+      }, 400);
+    }
+
+    function togglePause() {
+      paused = !paused;
+      if (paused) {
+        status.innerText += " ⏸️ Paused";
+        clearTimeout(warningTimer);
+        clearInterval(countdownTimer);
+        clearTimeout(mainTimer);
+      } else {
+        status.innerText = `▶️ Resuming...`;
+
+        // resume loop
+        if (resumeFromCountdown) {
+          resumeFromCountdown = false;
+          beginLoop();
+        }
+      }
+    }
+  </script>
+</body>
+</html>
