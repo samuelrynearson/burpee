@@ -2,44 +2,48 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Loop Timer with Beep</title>
+  <title>Loop Timer with Beep and Flash</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       text-align: center;
       padding: 40px;
       background-color: #f4f4f4;
+      transition: background-color 0.3s ease;
     }
+
     input, button {
       font-size: 18px;
       padding: 10px;
       margin: 10px;
     }
 
-    input {
-      /*border-radius: 30px;*/
-    }
-
-    button{
+    button {
       background-color: #ffcc00;
       border-style: none;
+      border-radius: 10px;
     }
 
     .timer {
-      /*font-size: 28px;*/
       margin: 20px 0;
+      font-size: 5vh;
     }
 
-    button  {
-      border-radius: 10px;
+    /* Green flash animation */
+    .flash-green {
+      animation: flashGreen 0.3s;
+    }
+
+    @keyframes flashGreen {
+      0% { background-color: #4CAF50; }
+      100% { background-color: #f4f4f4; }
     }
   </style>
 </head>
 <body>
-  <!-- <h1>Loop Timer</h1> -->
 
-  <label>Total Time (minutes): <input type="number" id="totalTime" min="1" value="5"></label><br>
-  <label>Repetitions: <input type="number" id="repetitions" min="1" value="5"></label><br>
+  <label>Total Time (minutes): <input type="number" id="totalTime" min="1" value="200"></label><br>
+  <label>Repetitions: <input type="number" id="repetitions" min="1" value="80"></label><br>
   <button onclick="startTimer()">Start</button>
   <button onclick="pauseResumeTimer()">Pause</button>
 
@@ -62,7 +66,6 @@
     let pauseTime = 0;
     let interval;
 
-    // Track beeps per repetition
     let beepTracker = { 2: false, 1: false, 0: false };
 
     function startTimer() {
@@ -85,7 +88,6 @@
       document.getElementById('currentRep').textContent = currentRep;
 
       interval = setInterval(updateTimers, 10);
-      console.log(loopDuration);
     }
 
     function pauseResumeTimer() {
@@ -126,6 +128,9 @@
         loopRemaining = loopDuration;
         beepTracker = { 2: false, 1: false, 0: false };
         document.getElementById('currentRep').textContent = currentRep;
+
+        playBeep();           // 🔊 Beep at end of loop
+        flashScreenGreen();   // 🟩 Flash screen green
       }
 
       // Beep on last 3, 2, 1 seconds
@@ -143,7 +148,7 @@
       const hours = Math.floor(ms / (1000 * 60 * 60));
       const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((ms % (1000 * 60)) / 1000);
-      const deciMs = Math.floor((ms % 1000) / 10); // get 2 decimals (e.g., 523 -> 52)
+      const deciMs = Math.floor((ms % 1000) / 10);
 
       return (
         String(hours).padStart(2, '0') + ':' +
@@ -159,14 +164,21 @@
       const gainNode = ctx.createGain();
 
       oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(800, ctx.currentTime); // Hz
-      gainNode.gain.setValueAtTime(0.2, ctx.currentTime); // volume
+      oscillator.frequency.setValueAtTime(800, ctx.currentTime);
+      gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
 
       oscillator.connect(gainNode);
       gainNode.connect(ctx.destination);
 
       oscillator.start();
-      oscillator.stop(ctx.currentTime + 0.15); // 150 ms beep
+      oscillator.stop(ctx.currentTime + 0.15);
+    }
+
+    function flashScreenGreen() {
+      document.body.classList.add('flash-green');
+      setTimeout(() => {
+        document.body.classList.remove('flash-green');
+      }, 300);
     }
   </script>
 </body>
